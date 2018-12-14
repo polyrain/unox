@@ -28,8 +28,8 @@ typedef struct Player {
 
 /* Contains information describing a card */
 typedef struct Card {
-    char* cardType;
-    int colorOne;
+    char cardType; //Can be N for number, F for Draw4, T for Draw2, R for 
+    int colorOne; // Reverse, W for Wild and S for Skip {N,F,T,R,W,B}
     int colorTwo;
     int cardValue;
 }Card;
@@ -42,6 +42,8 @@ typedef struct Card {
  * SKIP: One line
  * WILD: One line
  */
+
+/* Card dimensions are 12 by 11 iirc */
 
 void output_card(char* cardPlayed, int row, int col, int color, int color2);
 void output_display(Player* player, char* cardPlayed);
@@ -141,6 +143,34 @@ void draw_card_word(Card card) { //11 as the first char has been drawn
     printw("|");
     attroff(COLOR_PAIR(BORDER));
 
+}
+
+void print_card(Card card, int row, int col) {
+    int rowUpdate = 5; // Causes this to become idk
+    attron(COLOR_PAIR(BORDER));
+    mvprintw((row)-rowUpdate--, col, "+----------+");
+    // SWITCH NOW BASED ON THE CARD
+    switch (card.cardType) {
+        case N:
+            print_number_card(card, row, col);
+            break;
+
+        case F:
+        case W:
+            print_wild_card(card, row, col);
+            break;
+        case T:
+            print_take_two(card, row, col);
+            break;
+        case S:
+            print_skip_card(card, row, col);
+            break;
+        case R:
+            print_reverse_card(card, row, col);
+            break;
+        default:
+            // Error out, free memory, kill client
+    }
 }
 
 void output_card(char* cardPlayed, int row, int col, int color, int color2) {
