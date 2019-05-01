@@ -32,15 +32,17 @@ typedef struct Player {
     int numCards; // How many do we have?
 }Player;
 
-/* Contains information descriving a game.
+/* Contains information describing a game.
  * - List of players
  * - Last played card (card on top of stack)
  * - Player who played last card
  */
 typedef struct Game {
-    Player* players; // All players in this game
-    Card lastPlayed; // What was last played by a player?
+    Player* players; // All players in this game; p0 is always current client
+    Card* lastPlayed; // What was last played by a player?
     int lastPlayer; // Who played the last card?
+    int numPlayers; // How many are playing with us?
+    int clientNum; // Which player are we in the list?
 }Game;
 
 
@@ -56,12 +58,13 @@ typedef struct Game {
 /* Card dimensions are 12 by 11 iirc */
 
 void output_card(char* cardPlayed, int row, int col, int color, int color2);
-void output_display(Player* player, char* cardPlayed);
+void output_display(Game* game);
 void setup_ncurse(void); 
 
 int main() {
     setup_ncurse();
-    output_display(NULL, NULL);
+    //setup_game();
+    output_display(NULL);
     refresh();
     getch();
     endwin();
@@ -97,20 +100,26 @@ void setup_ncurse(void) {
  * as the players current hand. Gets the terminal 
  * size and ensures drawing is done to the best 
  * standard*/
-void output_display(Player* player) {
+void output_display(Game* game) {
     int row, col; // Size of screen in terms of rows and columns
     getmaxyx(stdscr, row,col); // Move all these inits into another func
     // Grabbing the screensize
+    output_card(game->lastPlayed, row, col); // We pass this due to consistency
+    output_hand(game->players[game->clientNum], row, col);
+
+}
+
+/*
     // Everything below this is now defunct
     int maxRow = row; // ??? Not sure why this is here
     row -= 15; // Put this in the middle top and fix this!!
     output_card(player.hand[0], row/2, (col - 43)/2, 4, 5); // what are these #'s?
-    /*output_card(cardPlayed, maxRow - 6, 20, 2, 1); // Fix this function
-    output_card(cardPlayed, maxRow - 6, 35, 2, 1);
-    output_card(cardPlayed, maxRow - 6, 50, 2, 1);
-    output_card(cardPlayed, maxRow - 6, 65, 2, 1);*/
-    //ioutput_hand(player, row, col);
 }
+
+*/
+
+
+/*
 
 void output_card(char* cardPlayed, int row, int col, int color, int color2) {
     int rowUpdate = 5; // This is how many rows there are in the top of it
@@ -131,10 +140,14 @@ void output_card(char* cardPlayed, int row, int col, int color, int color2) {
 
 }
 
+*/
+
 
 /*
  * Draws the blank space in the card
  */
+
+/*
 void draw_card_space(int* row, int* col, int* rowUpdate, int color, int num) {
 
     for (int i = 0; i < num; i++) {
@@ -217,3 +230,5 @@ void output_hand(Player* player, int row, int col) {
     init_pair(1, COLOR_WHITE, COLOR_WHITE);
     init_pair(2, COLOR_WHITE, COLOR_BLUE);
 }
+
+*/

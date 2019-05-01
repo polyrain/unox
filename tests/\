@@ -1,0 +1,117 @@
+#include <ncurses.h>
+#include <stdio.h>
+#include <string.h>
+
+typedef struct Player {
+    char** hand; // The current hand of cards
+    int numCards; // How many do we have?
+}Player;
+
+void output_card(char* cardPlayed, int row, int col);
+void output_display(Player* player, char* cardPlayed);
+
+
+int main() {
+    initscr();
+    raw();
+    noecho();
+    keypad(stdscr, TRUE);
+    start_color();
+    //getmaxyx(stdscr, row,col);
+    //mvprintw(row/2, (col-strlen(message))/2, "%s", message);
+    //mvprintw(row-2, 0, "This screen has %d rows and %d cols\n", row, col);
+    
+    output_display(NULL, NULL);
+    //printw("Try it again after resizing!\n");
+    refresh();
+    //char c = getch();
+    //attron(A_BOLD);
+    //printw(" Key pressed was: %c\n", c);
+    //attroff(A_BOLD);
+    getch();
+    endwin();
+
+    return 0;
+}
+
+/*
+ * Draws on the screen the card last played, as well
+ * as the players current hand. Gets the terminal 
+ * size and ensures drawing is done to the best 
+ * standard*/
+void output_display(Player* player, char* cardPlayed) {
+    int row, col;
+    getmaxyx(stdscr, row,col);
+    output_card(cardPlayed, row, col);
+    //ioutput_hand(player, row, col);
+}
+
+void output_card(char* cardPlayed, int row, int col) {
+    init_pair(1, COLOR_RED, COLOR_RED); // Make an entire red thing
+    init_pair(3, COLOR_WHITE, COLOR_WHITE);
+    attron(COLOR_PAIR(3));
+    int rowUpdate = 5; 
+    row = row - 15;
+    mvprintw((row/2)-rowUpdate--, (col - 14)/2, "+----------+");
+    attroff(COLOR_PAIR(3));
+
+    for (int i = 0; i < 2; i++) {
+        attron(COLOR_PAIR(3));
+        mvprintw((row/2)-rowUpdate--, (col - 14)/2, "|");
+        attroff(COLOR_PAIR(3));
+        attron(COLOR_PAIR(1));
+        printw("----------");
+        attroff(COLOR_PAIR(1));
+        attron(COLOR_PAIR(3));
+        printw("|");
+        attroff(COLOR_PAIR(3));
+    }
+    attron(COLOR_PAIR(3));
+    mvprintw((row/2)-rowUpdate--, (col - 14)/2, "|");
+    attroff(COLOR_PAIR(3));
+    attron(COLOR_PAIR(1));
+    printw("---");
+    init_pair(2, COLOR_WHITE, COLOR_RED);
+    attroff(COLOR_PAIR(1));
+    attron(COLOR_PAIR(2));
+    printw("DRAW");
+    attroff(COLOR_PAIR(2));
+    attron(COLOR_PAIR(1));
+    printw("---");
+    attroff(COLOR_PAIR(1));
+    attron(COLOR_PAIR(3));
+    printw("|");
+    mvprintw((row/2)-rowUpdate--, (col - 14)/2, "|");
+    attroff(COLOR_PAIR(3));
+    attron(COLOR_PAIR(1));
+    printw("---");
+    attroff(COLOR_PAIR(1));
+    attron(COLOR_PAIR(2));
+    printw("FOUR");
+    attroff(COLOR_PAIR(2));
+    attron(COLOR_PAIR(1));
+    printw("---");
+    attroff(COLOR_PAIR(1));
+    attron(COLOR_PAIR(3));
+    printw("|");
+    attroff(COLOR_PAIR(3));
+    for (int i = 0; i < 5; i++) {
+        attron(COLOR_PAIR(3));
+        mvprintw((row/2)-rowUpdate--, (col- 14)/2, "|");
+        attroff(COLOR_PAIR(3));
+        attron(COLOR_PAIR(1));
+        printw("----------");
+        attroff(COLOR_PAIR(1));
+        attron(COLOR_PAIR(3));
+        printw("|");
+        attroff(COLOR_PAIR(3));
+    }
+    attron(COLOR_PAIR(3));
+    mvprintw((row/2)-rowUpdate--, (col - 14)/2, "+----------+");
+    attroff(COLOR_PAIR(3));
+
+}
+
+//void output_hand(Player* player, int row, int col) {
+
+//}
