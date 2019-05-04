@@ -72,8 +72,10 @@ void output_display(Game* game) {
     Card newCard;
     newCard.colorOne = BLUE;
     newCard.cardValue = 7;
-    newCard.cardType = 'S';
-    print_card(&newCard, row, col);
+    newCard.cardType = 'T';
+    int initialY = (row/2) - 10; // Place the start 6 offsert
+    int initialX = (col/2) - 6; 
+    print_card(&newCard, initialY, initialX);
 }
 
 
@@ -333,32 +335,31 @@ void print_card_detail(Card* card, int* row, int col, int top) {
  * position on the screen.
  */
 void print_card(Card* card, int row, int col) {
-    int initialY = (row/2) - 10; // Place the start 6 offsert
-    int initialX = (col/2) - 6; 
-    print_card_edge(&initialY, initialX);
+    
+    print_card_edge(&row, col);
     attron(A_BOLD);
     // SWITCH NOW BASED ON THE CARD
     switch (card->cardType) {
         case 'N':
-            print_number_card(card, &initialY, initialX);
+            print_number_card(card, &row, col);
             break;
 
         case 'F':
         case 'W':
-            print_wild_card(card, &initialY, initialX);
+            print_wild_card(card, &row, col);
             break;
         case 'T':
-            print_take_two(card, &initialY, initialX);
+            print_take_two(card, &row, col);
             break;
         case 'S':
-            print_skip_card(card, &initialY, initialX);
+            print_skip_card(card, &row, col);
             break;
         case 'R':
-            print_reverse_card(card, &initialY, initialX);
+            print_reverse_card(card, &row, col);
             break;
         default:
             // Error out, free memory, kill client
             printf("Hello");
     }
-    print_card_edge(&initialY, initialX);
+    print_card_edge(&row, col);
 }
