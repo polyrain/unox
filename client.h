@@ -55,4 +55,5 @@ void print_wild_card(Card* card, int* row, int col);
 void print_skip_card(Card* card, int* row, int col);
 void print_card(Card* card, int row, int col);
 void print_take_two(Card* card, int* row, int col);
-void print_card_detail(Card* card, int* row, int col, int top); 
+void print_card_detail(Card* card, int* row, int col, int top);
+void print_card_text(Card* card, int* row, int col);
