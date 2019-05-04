@@ -1,7 +1,7 @@
 #include <ncurses.h>
-
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "client.h"
 
 #define EMPTY "            " // Define empty space
@@ -16,7 +16,7 @@
 #define REVERSE_TEXT "   REVERSE  "
 #define SKIP_TEXT "    SKIP    "
 #define TAKE_TWO_TEXT "  TAKE TWO  "
-
+#define HALF_EMPTY "      "
 
 /* Enum to describe the four colors, and border color, used by card
  * rendering */
@@ -31,8 +31,10 @@ enum CardColors {
 
 int main() {
     setup_ncurse();
+
+    Game newGame;
     //setup_game();
-    output_display(NULL);
+    output_display(&newGame);
     refresh();
     getch();
     endwin();
@@ -60,6 +62,30 @@ void setup_ncurse(void) {
     init_pair(GREEN, COLOR_WHITE, COLOR_GREEN);
 }
 
+
+/*void test_game(Game* game) {
+    Player* newPlayer = (Player*) malloc(sizeof(Player));
+    Card newCard1, newCard2, newCard3, newCard4;
+    Card* cards = (Card*) malloc(sizeof(Card) * 4);
+    newCard1.colorOne = BLUE;
+    newCard1.cardValue = 6;
+    newCard1.cardType = 'N';
+    newCard2.colorOne = RED;
+    newCard2.cardType = 'R';
+    newCard3.cardType = 'W';
+    newCard4.colorOne = GREEN;
+    newCard4.cardType = 'S';
+    cards[0] = newCard1;
+    cards[1] = newCard2;
+    cards[3] = newCard3;
+    cards[2] = newCard4;
+
+    
+    newPlayer->hand = cards;
+    game->clientNum = 0;
+    game->players[0] = newPlayer;
+}*/
+
 /*
  * Draws on the screen the card last played, as well
  * as the players current hand. Gets the terminal 
@@ -69,6 +95,7 @@ void output_display(Game* game) {
     int row, col; // Size of screen in terms of rows and columns
     getmaxyx(stdscr, row,col); // Grab screen size to try and adapt drawing
     /* Test card until Game functionality begins */
+    //test_game(game);
     Card newCard;
     newCard.colorOne = BLUE;
     newCard.cardValue = 7;
@@ -76,6 +103,45 @@ void output_display(Game* game) {
     int initialY = (row/2) - 10; // Place the start 6 offsert
     int initialX = (col/2) - 6; 
     print_card(&newCard, initialY, initialX);
+    print_hand(NULL, row, 0);
+}
+
+
+/*  Prints the clients hand to the screen */ 
+void print_hand(Player* player, int row, int col) {
+    int newRow = row + 15;
+    Card arr[4];
+    Card newCard;
+    newCard.colorOne = BLUE;
+    newCard.cardValue = 7;
+    newCard.cardType = 'T';
+
+    Card newCard1;
+    newCard1.colorOne = RED;
+    newCard1.cardValue = 7;
+    newCard1.cardType = 'W';
+
+
+    Card newCard2;
+    newCard2.colorOne = RED;
+    newCard2.cardValue = 7;
+    newCard2.cardType = 'N';
+
+    Card newCard3;
+    newCard3.colorOne = GREEN;
+    newCard3.cardValue = 7;
+    newCard3.cardType = 'S';
+
+    arr[0] = newCard;
+    arr[1] = newCard1;
+    arr[2] = newCard2;
+    arr[3] = newCard3;
+
+    for (int i = 0; i < 4; i++) {
+       col += 18; // Jump across ever time
+        // NEED TO HANDLE THE FACT YOUR CARDS MIGHT GO OFF SCREEN 
+        print_card(&(arr[i]), newRow, col);
+    }
 }
 
 
@@ -115,16 +181,6 @@ void print_card_edge(int* row, int col) {
 }
 
 
-/*
- * Method to draw a number card. Takes a card pointer, an int pointer
- * represeting the current card y value to be drawn on, and the column.
- */
-void print_number_card(Card* card, int* row, int col) {
-    print_card_detail(card, row, col, 1);
-    print_empty_space(card, row, col);
-    print_empty_space(card, row, col); // Number cards have no inner text
-    print_card_detail(card, row, col, 0);
-}
 
 /*
  * Prints empty space on cards, which represent the top and bottom 4 
@@ -145,18 +201,6 @@ void print_empty_space(Card* card, int* row, int col) {
     }
 }
 
-/*
- * Method to print a reverse card design on the screen. Takes
- * a card, an int pointer, and an integer to determine where
- * to draw, and what to draw color wise.
- */
-void print_reverse_card(Card* card, int* row, int col) {
-    print_card_detail(card, row, col, 1);
-    print_empty_space(card, row, col);
-    print_card_text(card, row, col);
-    print_empty_space(card, row, col);
-    print_card_detail(card, row, col, 0);
-}
 
 /* Method to print the text line of a card. Reverse,
  * skip and take two use this to print the relevant words
@@ -178,6 +222,8 @@ void print_card_text(Card* card, int* row, int col) {
         case 'T':
             printw(TAKE_TWO_TEXT);
             break;
+        case 'N':
+            break; // Number cards have no text 
         
         default:
             printf("AAAA");
@@ -233,10 +279,10 @@ void print_top_wild(int* row, int col) {
         mvprintw((*row)++, col, "|");
         attroff(COLOR_PAIR(BORDER));
         attron(COLOR_PAIR(RED));
-        printw("      ");
+        printw(HALF_EMPTY);
         attroff(COLOR_PAIR(RED));
         attron(COLOR_PAIR(YELLOW));
-        printw("      ");
+        printw(HALF_EMPTY);
         attroff(COLOR_PAIR(YELLOW));
         attron(COLOR_PAIR(BORDER));
         printw("|");
@@ -251,10 +297,10 @@ void print_bottom_wild(int* row, int col) {
         mvprintw((*row)++, col, "|");
         attroff(COLOR_PAIR(BORDER));
         attron(COLOR_PAIR(GREEN));
-        printw("      ");
+        printw(HALF_EMPTY);
         attroff(COLOR_PAIR(GREEN));
         attron(COLOR_PAIR(BLUE));
-        printw("      ");
+        printw(HALF_EMPTY);
         attroff(COLOR_PAIR(BLUE));
         attron(COLOR_PAIR(BORDER));
         printw("|");
@@ -262,23 +308,6 @@ void print_bottom_wild(int* row, int col) {
     }
 }
 
-/* Method ot print a skip card, same as others */
-void print_skip_card(Card* card, int* row, int col) {
-    print_card_detail(card, row, col, 1);
-    print_empty_space(card, row, col);
-    print_card_text(card, row, col);
-    print_empty_space(card, row, col);
-    print_card_detail(card, row, col, 0);    
-}
-
-/* Method to print a take two card, same as others */
-void print_take_two(Card* card, int* row, int col) { 
-    print_card_detail(card, row, col, 1);
-    print_empty_space(card, row, col);
-    print_card_text(card, row, col);
-    print_empty_space(card, row, col);
-    print_card_detail(card, row, col, 0);
-}
 
 /* Prints characters in top left or bottom right corner of card
  * depending on what value the "top" flag is set to. 
@@ -335,31 +364,16 @@ void print_card_detail(Card* card, int* row, int col, int top) {
  * position on the screen.
  */
 void print_card(Card* card, int row, int col) {
-    
     print_card_edge(&row, col);
     attron(A_BOLD);
-    // SWITCH NOW BASED ON THE CARD
-    switch (card->cardType) {
-        case 'N':
-            print_number_card(card, &row, col);
-            break;
-
-        case 'F':
-        case 'W':
-            print_wild_card(card, &row, col);
-            break;
-        case 'T':
-            print_take_two(card, &row, col);
-            break;
-        case 'S':
-            print_skip_card(card, &row, col);
-            break;
-        case 'R':
-            print_reverse_card(card, &row, col);
-            break;
-        default:
-            // Error out, free memory, kill client
-            printf("Hello");
+    if (card->cardType == 'F' || card->cardType == 'W') {
+        print_wild_card(card, &row, col);
+    } else {
+        print_card_detail(card, &row, col, 1);
+        print_empty_space(card, &row, col);
+        print_card_text(card, &row, col);
+        print_empty_space(card, &row, col);
+        print_card_detail(card, &row, col, 0);
     }
     print_card_edge(&row, col);
 }

@@ -4,7 +4,6 @@
 typedef struct Card {
     char cardType; //Can be N for number, F for Draw4, T for Draw2, R for 
     int colorOne; // Reverse, W for Wild and S for Skip {N,F,T,R,W,B}
-    int colorTwo; // Used when one of F or W
     int cardValue; // Number on the card, used for N
 }Card;
 
@@ -24,7 +23,7 @@ typedef struct Player {
  * - Player who played last card
  */
 typedef struct Game {
-    Player* players; // All players in this game; p0 is always current client
+    Player** players; // All players in this game; p0 is always current client
     Card* lastPlayed; // What was last played by a player?
     int lastPlayer; // Who played the last card?
     int numPlayers; // How many are playing with us?
@@ -41,19 +40,16 @@ typedef struct Game {
  * WILD: One line
  */
 
-/* Card dimensions are 12 by 11 iirc */
+/* Card dimensions are 15 by 10 iirc */
 
 void output_card(Card* lastPlayed, int row, int col);
 void output_display(Game* game);
 void setup_ncurse(void);
-void print_number_card(Card* card, int* row, int col);
 void print_empty_space(Card* card, int* row, int col);
-void print_reverse_card(Card* card, int* row, int col);
 void print_bottom_wild(int* row, int col);
 void print_top_wild(int* row, int col);
 void print_wild_card(Card* card, int* row, int col);
-void print_skip_card(Card* card, int* row, int col);
 void print_card(Card* card, int row, int col);
-void print_take_two(Card* card, int* row, int col);
 void print_card_detail(Card* card, int* row, int col, int top);
 void print_card_text(Card* card, int* row, int col);
+void print_hand(Player* player, int row, int col);
