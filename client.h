@@ -15,6 +15,7 @@ typedef struct Card {
 typedef struct Player {
     Card* hand; // The current hand of cards
     int numCards; // How many do we have?
+    int currentCard; // What card is currently selected in client?
 }Player;
 
 /* Contains information describing a game.
@@ -49,7 +50,7 @@ void print_empty_space(Card* card, int* row, int col);
 void print_bottom_wild(int* row, int col);
 void print_top_wild(int* row, int col);
 void print_wild_card(Card* card, int* row, int col);
-void print_card(Card* card, int row, int col);
+void print_card(Card* card, int row, int col, int bold);
 void print_card_detail(Card* card, int* row, int col, int top);
 void print_card_text(Card* card, int* row, int col);
 void print_hand(Player* player, int row, int col);

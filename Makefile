@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -pedantic -std=gnu99 
+CFLAGS = -Wall -pedantic -std=gnu99 -g 
 DEBUG = -g
 TARGETS = client
 
@@ -12,6 +12,6 @@ all: $(TARGETS)
 
 
 client: client.h client.c
-	$(CC) $(CFLAGS) -c client.c -o client -lncurses
+	$(CC) $(CFLAGS) -o client -lncurses client.c
 
 

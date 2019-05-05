@@ -32,11 +32,10 @@ enum CardColors {
 int main() {
     setup_ncurse();
 
-    Game newGame;
+    Game* newGame = (Game*) malloc(sizeof(Game));
     //setup_game();
-    output_display(&newGame);
+    output_display(newGame);
     refresh();
-    getch();
     endwin();
 
     return 0;
@@ -51,6 +50,7 @@ void setup_ncurse(void) {
     initscr();
     raw();
     noecho();
+    cbreak();
     keypad(stdscr, TRUE);
     start_color();
     curs_set(0);
@@ -63,7 +63,7 @@ void setup_ncurse(void) {
 }
 
 
-/*void test_game(Game* game) {
+void test_game(Game* game) {
     Player* newPlayer = (Player*) malloc(sizeof(Player));
     Card newCard1, newCard2, newCard3, newCard4;
     Card* cards = (Card*) malloc(sizeof(Card) * 4);
@@ -80,11 +80,13 @@ void setup_ncurse(void) {
     cards[3] = newCard3;
     cards[2] = newCard4;
 
-    
+    newPlayer->currentCard = 0;
     newPlayer->hand = cards;
+    newPlayer->numCards = 4;
     game->clientNum = 0;
+    game->players = (Player**) malloc(sizeof(Player*) * 2);
     game->players[0] = newPlayer;
-}*/
+}
 
 /*
  * Draws on the screen the card last played, as well
@@ -95,22 +97,37 @@ void output_display(Game* game) {
     int row, col; // Size of screen in terms of rows and columns
     getmaxyx(stdscr, row,col); // Grab screen size to try and adapt drawing
     /* Test card until Game functionality begins */
-    //test_game(game);
+    test_game(game);
     Card newCard;
+    int key = 0, currentCard = 0;
     newCard.colorOne = BLUE;
     newCard.cardValue = 7;
     newCard.cardType = 'T';
     int initialY = (row/2) - 10; // Place the start 6 offsert
     int initialX = (col/2) - 6; 
-    print_card(&newCard, initialY, initialX);
-    print_hand(NULL, row, 0);
+    print_card(&(game->players[game->clientNum]->hand[2]), initialY, initialX, 1);
+    print_hand(game->players[game->clientNum], row - 30, 0);
+    while(1) { // TEST INTERACTION
+        refresh();
+        key = getch();
+        if (key == KEY_LEFT && game->players[game->clientNum]->currentCard != 0) {
+            game->players[game->clientNum]->currentCard--;
+            print_hand(game->players[game->clientNum], row - 30, 0);
+        } else if (key == KEY_RIGHT && game->players[game->clientNum]->currentCard != 3) {
+            game->players[game->clientNum]->currentCard++;
+            print_hand(game->players[game->clientNum], row - 30, 0);
+        } else if (key == 'q' || key == 'Q') {
+            return;
+        }
+        refresh();
+    }
 }
 
 
 /*  Prints the clients hand to the screen */ 
 void print_hand(Player* player, int row, int col) {
     int newRow = row + 15;
-    Card arr[4];
+   /* Card arr[4];
     Card newCard;
     newCard.colorOne = BLUE;
     newCard.cardValue = 7;
@@ -141,6 +158,19 @@ void print_hand(Player* player, int row, int col) {
        col += 18; // Jump across ever time
         // NEED TO HANDLE THE FACT YOUR CARDS MIGHT GO OFF SCREEN 
         print_card(&(arr[i]), newRow, col);
+    }*/
+    
+    for (int i = 0; i < player->numCards; i++) {
+        if (i == player->currentCard) { // Bold current selections
+            print_card(&(player->hand[i]), newRow, col, 1);
+            
+            if (i == 2) {
+                mvprintw(0,0, "AHAHAHA");
+            }
+        } else {
+            print_card(&(player->hand[i]), newRow, col, 0);
+        }
+        col += 18;
     }
 }
 
@@ -223,6 +253,7 @@ void print_card_text(Card* card, int* row, int col) {
             printw(TAKE_TWO_TEXT);
             break;
         case 'N':
+            printw(EMPTY);
             break; // Number cards have no text 
         
         default:
@@ -256,7 +287,7 @@ void print_wild_card(Card* card, int* row, int col) {
             attroff(COLOR_PAIR(BLUE));
             break;
         case 'W':
-            printw("   WI");
+            printw("    WI");
             attroff(COLOR_PAIR(RED));
             attron(COLOR_PAIR(BLUE));
             printw("LD    ");
@@ -274,7 +305,7 @@ void print_wild_card(Card* card, int* row, int col) {
 
 /* Method to print the top two rainbow parts of a rainbow card */
 void print_top_wild(int* row, int col) {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
         attron(COLOR_PAIR(BORDER));
         mvprintw((*row)++, col, "|");
         attroff(COLOR_PAIR(BORDER));
@@ -292,7 +323,7 @@ void print_top_wild(int* row, int col) {
 
 /* Method to print the bottom two rainbow parts of a rainbow card */
 void print_bottom_wild(int* row, int col) {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
         attron(COLOR_PAIR(BORDER));
         mvprintw((*row)++, col, "|");
         attroff(COLOR_PAIR(BORDER));
@@ -363,9 +394,11 @@ void print_card_detail(Card* card, int* row, int col, int top) {
  * Takes a card pointer and prints off the relevant card at the designated
  * position on the screen.
  */
-void print_card(Card* card, int row, int col) {
+void print_card(Card* card, int row, int col, int bold) {
+    if(bold) {
+        attron(A_BOLD);
+    }
     print_card_edge(&row, col);
-    attron(A_BOLD);
     if (card->cardType == 'F' || card->cardType == 'W') {
         print_wild_card(card, &row, col);
     } else {
@@ -376,4 +409,8 @@ void print_card(Card* card, int row, int col) {
         print_card_detail(card, &row, col, 0);
     }
     print_card_edge(&row, col);
+    if (bold) {
+        attroff(A_BOLD);
+    }
+    refresh();
 }
