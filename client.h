@@ -15,6 +15,7 @@ typedef struct Card {
 typedef struct Player {
     Card* hand; // The current hand of cards
     int numCards; // How many do we have?
+    int currentPage = 0; // Used to determine what page of cards to show
 }Player;
 
 /* Contains information describing a game.
@@ -28,6 +29,7 @@ typedef struct Game {
     int lastPlayer; // Who played the last card?
     int numPlayers; // How many are playing with us?
     int clientNum; // Which player are we in the list?
+    char* chatLog[5]; // Used to store 5 messages, 5 string ptrs
 }Game;
 
 

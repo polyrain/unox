@@ -62,6 +62,39 @@ void setup_ncurse(void) {
     init_pair(GREEN, COLOR_WHITE, COLOR_GREEN);
 }
 
+/*
+ * Initialize a new game. Allocate memory for players, chat
+ * and a set of cards. 
+ */
+void init_game(Game* game) {
+    for (int i = 0; i < 5; i++) {
+        game->chatLog[i] = (char*) malloc(sizeof(char) * 30); // 30 char chat
+    }
+
+    // Malloc players here, then malloc the array that holds them 
+    // As it's a VLA of one dimension, but it contains pointers
+    // as it's elements, which hold onto player data
+    // i.e -> game.players[0] -> player* -> <player info here>
+    // while c99 supports VLA's, not backwards compatible
+}
+
+
+void print_chat_buffer(Game* game) {
+    int spacing = 1; // Used for spacing messages; should only be 1 char
+    for (int i = 0; i < 5; i++) {
+        mvprintw((40 + spacing), 40, "%s\n",  game->chatLog[i]);
+        spacing++;
+    }
+}
+
+void update_chat_buffer(Game* game) {
+    // Some kind of network code here to grab messages from the server
+    char* newMessage = NULL; // Memory is overwritten not free'd
+    game->chatLog[0] = newMessage;
+
+}
+
+
 
 /*void test_game(Game* game) {
     Player* newPlayer = (Player*) malloc(sizeof(Player));
@@ -137,7 +170,11 @@ void print_hand(Player* player, int row, int col) {
     arr[2] = newCard2;
     arr[3] = newCard3;
 
-    for (int i = 0; i < 4; i++) {
+    // print_card(&(arr[i + (Player->page * 5)]), newRow, col); 
+    // Above will increment forward in array by specified amount always
+    // Where amount is 5 cards per page. 
+
+    for (int i = 0; i < 4; i++) { // Need to have pages basically
        col += 18; // Jump across ever time
         // NEED TO HANDLE THE FACT YOUR CARDS MIGHT GO OFF SCREEN 
         print_card(&(arr[i]), newRow, col);
@@ -349,7 +386,7 @@ void print_card_detail(Card* card, int* row, int col, int top) {
             }
             break;
         default:
-            //error
+            // error, shouldn't be reached
             printf("AHH");
     }
 
