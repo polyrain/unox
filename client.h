@@ -16,7 +16,7 @@ typedef struct Player {
     Card* hand; // The current hand of cards
     int numCards; // How many do we have?
     int currentCard; // What card is currently selected in client?
-    int currentPage = 0; // Used to determine what page of cards to show
+    int currentPage; // Used to determine what page of cards to show
 }Player;
 
 /* Contains information describing a game.
