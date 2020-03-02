@@ -17,7 +17,13 @@
 #define SKIP_TEXT "    SKIP    "
 #define TAKE_TWO_TEXT "  TAKE TWO  "
 #define HALF_EMPTY "      "
+#define NUM_CENTER "      %d     "
+#define CARD_EDGE "+------------+"
+#define CARD_HEIGHT 13
+#define CARD_WIDTH 14
 
+
+// TODO: Make magic numbers be reactive to terminal size 
 /* Enum to describe the four colors, and border color, used by card
  * rendering */
 enum CardColors {
@@ -44,7 +50,7 @@ int main() {
 /* 
  * All backend ncurse content setup; 
  * Initialize screen, take raw input,
- * establish color pairings
+ * establish color pairings for use by drawing functions
  */
 void setup_ncurse(void) {
     initscr();
@@ -79,6 +85,9 @@ void init_game(Game* game) {
 }
 
 
+/*
+ * Outputs the chat on the screen
+ */
 void print_chat_buffer(Game* game) {
     int spacing = 1; // Used for spacing messages; should only be 1 char
     for (int i = 0; i < 5; i++) {
@@ -95,27 +104,29 @@ void update_chat_buffer(Game* game) {
 }
 
 
-
+// Test method to construct a hand and player 
 void test_game(Game* game) {
     Player* newPlayer = (Player*) malloc(sizeof(Player));
-    Card newCard1, newCard2, newCard3, newCard4;
-    Card* cards = (Card*) malloc(sizeof(Card) * 4);
+    Card newCard1, newCard2, newCard3, newCard4, newCard5;
+    Card* cards = (Card*) malloc(sizeof(Card) * 5);
     newCard1.colorOne = BLUE;
-    newCard1.cardValue = 6;
+    newCard1.cardValue = 9;
     newCard1.cardType = 'N';
     newCard2.colorOne = RED;
     newCard2.cardType = 'R';
-    newCard3.cardType = 'W';
+    newCard3.cardType = 'F';
     newCard4.colorOne = GREEN;
     newCard4.cardType = 'S';
+    newCard5.cardType = 'W';
     cards[0] = newCard1;
     cards[1] = newCard2;
     cards[3] = newCard3;
     cards[2] = newCard4;
+    cards[4] = newCard5;
 
     newPlayer->currentCard = 0;
     newPlayer->hand = cards;
-    newPlayer->numCards = 4;
+    newPlayer->numCards = 5; // 1 index'd
     game->clientNum = 0;
     game->players = (Player**) malloc(sizeof(Player*) * 2);
     game->players[0] = newPlayer;
@@ -125,115 +136,56 @@ void test_game(Game* game) {
  * Draws on the screen the card last played, as well
  * as the players current hand. Gets the terminal 
  * size and ensures drawing is done to the best 
- * standard*/
+ * standard relative to the size received.
+ * */
 void output_display(Game* game) {
     int row, col; // Size of screen in terms of rows and columns
     getmaxyx(stdscr, row,col); // Grab screen size to try and adapt drawing
     /* Test card until Game functionality begins */
     test_game(game);
-    Card newCard;
-    int key = 0, currentCard = 0;
-    newCard.colorOne = BLUE;
-    newCard.cardValue = 7;
-    newCard.cardType = 'T';
-    int initialY = (row/2) - 10; // Place the start 6 offsert
-    int initialX = (col/2) - 6; 
-    print_card(&(game->players[game->clientNum]->hand[2]), initialY, initialX, 1);
-    print_hand(game->players[game->clientNum], row - 30, 0);
+    int key = 0;
+    int initialY = (row / 2) - CARD_HEIGHT / 2; // Place the start 6 offset so it positions in middle
+    int initialX = (col / 2) - CARD_WIDTH / 2;
+
+    print_card(&(game->players[game->clientNum]->hand[2]), initialY, initialX, 1); // Initial card to print
+    print_hand(game->players[game->clientNum], row - CARD_HEIGHT - 2, 0); // -15 as Card is 13 tall, 2 spaces under for style
+    
     while(1) { // TEST INTERACTION
-        refresh();
-        key = getch();
+        key = getch(); // What did they press?
         if (key == KEY_LEFT && game->players[game->clientNum]->currentCard != 0) {
             game->players[game->clientNum]->currentCard--;
-            print_hand(game->players[game->clientNum], row - 30, 0);
-        } else if (key == KEY_RIGHT && game->players[game->clientNum]->currentCard != 3) {
+            print_hand(game->players[game->clientNum], row - CARD_HEIGHT - 2, 0); // 15 prints card + 2 lines under for style
+        } else if (key == KEY_RIGHT 
+                && game->players[game->clientNum]->currentCard 
+                != game->players[game->clientNum]->numCards - 1) {
+
             game->players[game->clientNum]->currentCard++;
-            print_hand(game->players[game->clientNum], row - 30, 0);
+            print_hand(game->players[game->clientNum], row - CARD_HEIGHT - 2, 0);
+
         } else if (key == 'q' || key == 'Q') {
             return;
         }
-        refresh();
+        refresh(); // Keep drawing
     }
 }
 
 
 /*  Prints the clients hand to the screen */ 
 void print_hand(Player* player, int row, int col) {
-    int newRow = row + 15;
-   /* Card arr[4];
-    Card newCard;
-    newCard.colorOne = BLUE;
-    newCard.cardValue = 7;
-    newCard.cardType = 'T';
-
-    Card newCard1;
-    newCard1.colorOne = RED;
-    newCard1.cardValue = 7;
-    newCard1.cardType = 'W';
-
-
-    Card newCard2;
-    newCard2.colorOne = RED;
-    newCard2.cardValue = 7;
-    newCard2.cardType = 'N';
-
-    Card newCard3;
-    newCard3.colorOne = GREEN;
-    newCard3.cardValue = 7;
-    newCard3.cardType = 'S';
-
-    arr[0] = newCard;
-    arr[1] = newCard1;
-    arr[2] = newCard2;
-    arr[3] = newCard3;
-
-    // print_card(&(arr[i + (Player->page * 5)]), newRow, col); 
+    
     // Above will increment forward in array by specified amount always
     // Where amount is 5 cards per page. 
-
-    for (int i = 0; i < 4; i++) { // Need to have pages basically
-       col += 18; // Jump across ever time
-        // NEED TO HANDLE THE FACT YOUR CARDS MIGHT GO OFF SCREEN 
-        print_card(&(arr[i]), newRow, col);
-    }*/
     
     for (int i = 0; i < player->numCards; i++) {
         if (i == player->currentCard) { // Bold current selections
-            print_card(&(player->hand[i]), newRow, col, 1);
-            
-            if (i == 2) {
-                mvprintw(0,0, "AHAHAHA");
-            }
+            print_card(&(player->hand[i]), row, col, 1);   
         } else {
-            print_card(&(player->hand[i]), newRow, col, 0);
+            print_card(&(player->hand[i]), row, col, 0);
         }
-        col += 18;
+        col += CARD_WIDTH + 4; // Jump over card we drew + 4 char gap TODO fix magic make reactive
     }
 }
 
-
-/*
- * Outputs last played card on pile. Draws in centre of screen,
- * determined from values passed by value to function.
- * CARD DIMENSIONS: 15 characters wide, 10 characters tall
- */
-void output_card(Card* lastPlayed, int row, int col) {
-    int initialY = (row/2) - 10; // Place the start 6 offsert
-    int initialX = (col/2) - 6; 
-
-    attron(COLOR_PAIR(BORDER)); // Begin drawing
-    mvprintw(initialX, initialY, "+-----------+");
-
-    for (int i = 0; i < 5; i++) {
-        mvprintw(initialY++, initialX, "+-----------+");
-    }
-    for (int i = 0; i < 5; i++) {
-        attroff(COLOR_PAIR(BORDER));
-        attron(COLOR_PAIR(RED));
-        mvprintw(initialY++, initialX, EMPTY);
-    }
-
-}
 
 /* 
  * Helper function to draw top and bottom edge of cards, to ensure
@@ -242,9 +194,8 @@ void output_card(Card* lastPlayed, int row, int col) {
  */
 void print_card_edge(int* row, int col) {
     attron(COLOR_PAIR(BORDER));
-    mvprintw((*row)++, col, "+------------+");
+    mvprintw((*row)++, col, CARD_EDGE);
     attroff(COLOR_PAIR(BORDER)); // Draw the border on edge
-
 }
 
 
@@ -256,7 +207,7 @@ void print_card_edge(int* row, int col) {
  */
 void print_empty_space(Card* card, int* row, int col) {
     for (int i = 0; i < 4; i++) {
-        attron(COLOR_PAIR(BORDER));
+        attron(COLOR_PAIR(BORDER)); // Turn on the color of the border
         mvprintw((*row)++, col, "|");
         attroff(COLOR_PAIR(BORDER));
         attron(COLOR_PAIR(card->colorOne));
@@ -290,11 +241,11 @@ void print_card_text(Card* card, int* row, int col) {
             printw(TAKE_TWO_TEXT);
             break;
         case 'N':
-            printw(EMPTY);
+            printw(NUM_CENTER, card->cardValue);
             break; // Number cards have no text 
         
         default:
-            printf("AAAA");
+            fprintf(stderr, "Invalid card type detected\n");
     }
 
     attroff(COLOR_PAIR(card->colorOne));
@@ -309,9 +260,11 @@ void print_card_text(Card* card, int* row, int col) {
  * that goes into them. Switches text based on if you have a wild
  * or a draw four card */
 void print_wild_card(Card* card, int* row, int col) {
+
     print_top_wild(row, col);
-    attron(COLOR_PAIR(BORDER));
-    mvprintw((*row)++, col, "|");
+
+    attron(COLOR_PAIR(BORDER)); // Top colors, now draw special interior
+    mvprintw((*row)++, col, "|"); // Text differs from WILD and DRAW4
     attroff(COLOR_PAIR(BORDER));
     attron(COLOR_PAIR(RED));
 
@@ -330,10 +283,13 @@ void print_wild_card(Card* card, int* row, int col) {
             printw("LD    ");
             attroff(COLOR_PAIR(BLUE));
             break;
+
+        default:
+            fprintf(stderr, "Invalid wild card found!");
     }
 
     attron(COLOR_PAIR(BORDER));
-    printw("|");
+    printw("|"); // Close up this one line, and draw rest of bottom
     attroff(COLOR_PAIR(BORDER));
 
     print_bottom_wild(row, col);
@@ -435,7 +391,9 @@ void print_card(Card* card, int row, int col, int bold) {
     if(bold) {
         attron(A_BOLD);
     }
+
     print_card_edge(&row, col);
+    
     if (card->cardType == 'F' || card->cardType == 'W') {
         print_wild_card(card, &row, col);
     } else {
@@ -445,9 +403,12 @@ void print_card(Card* card, int row, int col, int bold) {
         print_empty_space(card, &row, col);
         print_card_detail(card, &row, col, 0);
     }
+
     print_card_edge(&row, col);
+    
     if (bold) {
         attroff(A_BOLD);
     }
+    
     refresh();
 }
