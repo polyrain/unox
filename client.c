@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include "client.h"
 
 #define EMPTY "            " // Define empty space
@@ -21,6 +22,9 @@
 #define CARD_EDGE "+------------+"
 #define CARD_HEIGHT 13
 #define CARD_WIDTH 14
+#define CHAT_PROMPT "Type your message: "
+#define CHAT_LOG "%d:%d:%d %s"
+#define MESSAGE_SIZE 80
 
 
 // TODO: Make magic numbers be reactive to terminal size 
@@ -32,6 +36,12 @@ enum CardColors {
     RED = 3,
     YELLOW = 4,
     GREEN = 5
+};
+
+enum InputFlags {
+    QUIT = 0,
+    CHAT = 1,
+    SELECT = -1
 };
 
 
@@ -73,9 +83,12 @@ void setup_ncurse(void) {
  * and a set of cards. 
  */
 void init_game(Game* game) {
-    for (int i = 0; i < 5; i++) {
-        game->chatLog[i] = (char*) malloc(sizeof(char) * 30); // 30 char chat
+    for (int i = 0; i < CHAT_LOG_COUNT; i++) {
+        game->chatLog[i] = (Message*) malloc(sizeof(Message)); // 30 char chat
+        game->chatLog[i]->content = (char*) malloc(sizeof(char) * MESSAGE_SIZE);
     }
+
+    game->numMessages = 0;
 
     // Malloc players here, then malloc the array that holds them 
     // As it's a VLA of one dimension, but it contains pointers
@@ -85,27 +98,9 @@ void init_game(Game* game) {
 }
 
 
-/*
- * Outputs the chat on the screen
- */
-void print_chat_buffer(Game* game) {
-    int spacing = 1; // Used for spacing messages; should only be 1 char
-    for (int i = 0; i < 5; i++) {
-        mvprintw((40 + spacing), 40, "%s\n",  game->chatLog[i]);
-        spacing++;
-    }
-}
-
-void update_chat_buffer(Game* game) {
-    // Some kind of network code here to grab messages from the server
-    char* newMessage = NULL; // Memory is overwritten not free'd
-    game->chatLog[0] = newMessage;
-
-}
-
-
 // Test method to construct a hand and player 
 void test_game(Game* game) {
+    init_game(game);
     Player* newPlayer = (Player*) malloc(sizeof(Player));
     Card newCard1, newCard2, newCard3, newCard4, newCard5;
     Card* cards = (Card*) malloc(sizeof(Card) * 5);
@@ -149,24 +144,99 @@ void output_display(Game* game) {
 
     print_card(&(game->players[game->clientNum]->hand[2]), initialY, initialX, 1); // Initial card to print
     print_hand(game->players[game->clientNum], row - CARD_HEIGHT - 2, 0); // -15 as Card is 13 tall, 2 spaces under for style
+    init_game(game); 
     
     while(1) { // TEST INTERACTION
         key = getch(); // What did they press?
-        if (key == KEY_LEFT && game->players[game->clientNum]->currentCard != 0) {
-            game->players[game->clientNum]->currentCard--;
-            print_hand(game->players[game->clientNum], row - CARD_HEIGHT - 2, 0); // 15 prints card + 2 lines under for style
-        } else if (key == KEY_RIGHT 
-                && game->players[game->clientNum]->currentCard 
-                != game->players[game->clientNum]->numCards - 1) {
-
-            game->players[game->clientNum]->currentCard++;
-            print_hand(game->players[game->clientNum], row - CARD_HEIGHT - 2, 0);
-
-        } else if (key == 'q' || key == 'Q') {
+        int status = handle_input(key, game);
+        if (status == QUIT) {
             return;
+        } else if (status == CHAT) {
+            handle_chat(game, row, col);
         }
+        print_hand(game->players[game->clientNum], row - CARD_HEIGHT - 2, 0);
         refresh(); // Keep drawing
     }
+}
+
+
+void handle_chat(Game* game, int row, int col) {
+    
+    if (++(game->numMessages) > CHAT_LOG_COUNT) { // Check we haven't filled
+        game->numMessages = CHAT_LOG_COUNT; // the bank
+         
+        for (int i = 0; i < CHAT_LOG_COUNT - 1; i++) {
+            strcpy(game->chatLog[i]->content, game->chatLog[i + 1]->content); // 5 goes to 4 and so on
+        } // If so shift it all down one
+        strcpy(game->chatLog[CHAT_LOG_COUNT - 1]->content, "");
+    }
+
+    mvprintw(row - 2, (col - strlen(CHAT_PROMPT)) - MESSAGE_SIZE, CHAT_PROMPT); // Display prompt
+    capture_message(game); // -2 stops overflow on screen size, without it touches card
+    print_chat_buffer(game, row, col);
+    move(row - 2, (col - strlen(CHAT_PROMPT)) - MESSAGE_SIZE); // Move cursor bacl
+    clrtoeol(); // Wipe the prompt
+
+    
+}
+
+/* Grabs a message from player via stdin, stores in the game */
+void capture_message(Game* game) {
+    Message* newMessage = game->chatLog[game->numMessages - 1];
+    echo();
+    getstr(newMessage->content); // Get input
+    noecho();
+    time_t rawTime; // Get the sys time
+    time(&rawTime);
+    struct tm* tm_struct = localtime(&rawTime);
+    newMessage->hour = tm_struct->tm_hour;
+    newMessage->min = tm_struct->tm_min;
+    newMessage->sec = tm_struct->tm_sec; 
+}
+
+/* Prints the messages stored in game to terminal */
+void print_chat_buffer(Game* game, int row, int col) {
+   
+    int spacing = 3; // Used for spacing messages; should only be 1 char
+    for (int i = CHAT_LOG_COUNT - 1; i >= 0; i--) {
+        if (strlen(game->chatLog[i]->content) > 0) {
+            move((row - spacing), (col - strlen(CHAT_PROMPT)) - MESSAGE_SIZE);
+            clrtoeol(); // Above wipes old line off screen
+            mvprintw((row - spacing), (col - strlen(CHAT_PROMPT)) - MESSAGE_SIZE, 
+                CHAT_LOG, game->chatLog[i]->hour,
+                game->chatLog[i]->min, 
+                game->chatLog[i]->sec, game->chatLog[i]->content);
+            spacing++; // Print message to screen and incr spacing
+        } 
+    }
+
+}
+
+int handle_input(int key, Game* game) {
+    Player* player = game->players[game->clientNum];
+    switch (key) {
+        case KEY_LEFT:
+            if (player->currentCard != 0) {
+                player->currentCard--;
+            }
+            break;
+        case KEY_RIGHT:
+            if (player->currentCard != player->numCards - 1) {
+                player->currentCard++;
+            }
+            break;
+        case 'q':
+        case 'Q':
+            return QUIT;
+        case 't':
+        case 'T':
+            return CHAT;
+        default:
+            return SELECT;
+
+
+    }
+    return SELECT;
 }
 
 
@@ -242,7 +312,7 @@ void print_card_text(Card* card, int* row, int col) {
             break;
         case 'N':
             printw(NUM_CENTER, card->cardValue);
-            break; // Number cards have no text 
+            break;  
         
         default:
             fprintf(stderr, "Invalid card type detected\n");

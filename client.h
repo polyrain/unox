@@ -1,4 +1,5 @@
 
+#define CHAT_LOG_COUNT 5
 
 /* Contains information describing a card */
 typedef struct Card {
@@ -19,6 +20,15 @@ typedef struct Player {
     int currentPage; // Used to determine what page of cards to show
 }Player;
 
+/* Message container; holds the time sent + message content
+ */
+typedef struct Message {
+    int hour;
+    int min;
+    int sec;
+    char* content;
+}Message;
+
 /* Contains information describing a game.
  * - List of players
  * - Last played card (card on top of stack)
@@ -30,8 +40,10 @@ typedef struct Game {
     int lastPlayer; // Who played the last card?
     int numPlayers; // How many are playing with us?
     int clientNum; // Which player are we in the list?
-    char* chatLog[5]; // Used to store 5 messages, 5 string ptrs
+    Message* chatLog[CHAT_LOG_COUNT]; // Used to store 5 messages, 5 string ptrs
+    int numMessages;
 }Game;
+
 
 
 /* ALL CARD TYPES NOTE FOR ME
@@ -44,7 +56,7 @@ typedef struct Game {
  */
 
 /* Card dimensions are 15 by 10 iirc */
-
+int handle_input(int key, Game* game); 
 void output_card(Card* lastPlayed, int row, int col);
 void output_display(Game* game);
 void setup_ncurse(void);
@@ -56,3 +68,6 @@ void print_card(Card* card, int row, int col, int bold);
 void print_card_detail(Card* card, int* row, int col, int top);
 void print_card_text(Card* card, int* row, int col);
 void print_hand(Player* player, int row, int col);
+void print_chat_buffer(Game* game, int row, int col);
+void handle_chat(Game* game, int row, int col);
+void capture_message(Game* game);
