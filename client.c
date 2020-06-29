@@ -26,7 +26,10 @@
 #define CHAT_LOG "%d:%d:%d %s"
 #define MESSAGE_SIZE 80
 
-
+void add_to_hand(Player* player, Card* card);
+void remove_from_hand(Player* player, int cardNum);
+void print_game(Game* game, int row, int col);
+void play_card(Game* game, Player* player, int clientNum);
 // TODO: Make magic numbers be reactive to terminal size 
 /* Enum to describe the four colors, and border color, used by card
  * rendering */
@@ -104,23 +107,29 @@ void test_game(Game* game) {
     Player* newPlayer = (Player*) malloc(sizeof(Player));
     Card newCard1, newCard2, newCard3, newCard4, newCard5;
     Card* cards = (Card*) malloc(sizeof(Card) * 5);
-    newCard1.colorOne = BLUE;
+    newCard1.color = BLUE;
     newCard1.cardValue = 9;
     newCard1.cardType = 'N';
-    newCard2.colorOne = RED;
+    newCard2.color = RED;
     newCard2.cardType = 'R';
     newCard3.cardType = 'F';
-    newCard4.colorOne = GREEN;
+    newCard2.cardValue = 0;
+    newCard4.color = GREEN;
     newCard4.cardType = 'S';
     newCard5.cardType = 'W';
+    newCard4.cardValue = 0;
+    newCard3.cardValue = 0;
+    newCard5.cardValue = 0;
     cards[0] = newCard1;
     cards[1] = newCard2;
     cards[3] = newCard3;
     cards[2] = newCard4;
     cards[4] = newCard5;
-
+    game->lastPlayed = (Card*) malloc(sizeof(Card));
     newPlayer->currentCard = 0;
+    game->lastPlayer = -1;
     newPlayer->hand = cards;
+    newPlayer->handSize = 5;
     newPlayer->numCards = 5; // 1 index'd
     game->clientNum = 0;
     game->players = (Player**) malloc(sizeof(Player*) * 2);
@@ -139,13 +148,14 @@ void output_display(Game* game) {
     /* Test card until Game functionality begins */
     test_game(game);
     int key = 0;
-    int initialY = (row / 2) - CARD_HEIGHT / 2; // Place the start 6 offset so it positions in middle
-    int initialX = (col / 2) - CARD_WIDTH / 2;
 
-    print_card(&(game->players[game->clientNum]->hand[2]), initialY, initialX, 1); // Initial card to print
-    print_hand(game->players[game->clientNum], row - CARD_HEIGHT - 2, 0); // -15 as Card is 13 tall, 2 spaces under for style
-    init_game(game); 
-    
+    Card testCard;
+    testCard.color = RED;
+    testCard.cardValue = 4;
+    testCard.cardType = 'N';
+
+    print_game(game, row, col);
+    Player* player = game->players[game->clientNum];
     while(1) { // TEST INTERACTION
         key = getch(); // What did they press?
         int status = handle_input(key, game);
@@ -153,13 +163,86 @@ void output_display(Game* game) {
             return;
         } else if (status == CHAT) {
             handle_chat(game, row, col);
+        } else if (status == 'P') {
+            add_to_hand(player, &testCard);
+        } else if (status == 'x') {
+            remove_from_hand(player, player->numCards - 1);
+        } else if (status == 'n') {
+            play_card(game, player, game->clientNum);
+            remove_from_hand(game->players[game->clientNum], game->players[game->clientNum]->currentCard);
         }
-        print_hand(game->players[game->clientNum], row - CARD_HEIGHT - 2, 0);
+        print_game(game, row, col);
         refresh(); // Keep drawing
     }
 }
 
 
+/*Card* generate_card(void) {
+ 
+
+}*/
+
+// Performs a deep copy of a card to the game
+void play_card(Game* game, Player* player, int clientNum) {
+    Card* card = &(player->hand[player->currentCard]);
+    game->lastPlayed->cardType = card->cardType;
+    game->lastPlayed->cardValue = card->cardValue;
+    game->lastPlayed->color = card->color;
+    game->lastPlayer = clientNum;
+}
+
+/* Prints the current state of the game to the screen; to avoid flicker,
+ * individual prints call cltoeol to only wipe the places changing */
+void print_game(Game* game, int row, int col) {
+    print_hand(game->players[game->clientNum], row - CARD_HEIGHT - 2, 0);
+    print_chat_buffer(game, row, col);
+
+    int midRow, midCol; // Find the middle of the screen, and print the last
+    getmaxyx(stdscr, midRow, midCol);
+
+    if (game->lastPlayer != -1) { // If we havent seen a move yet, no last player
+        print_card(game->lastPlayed, 
+                (midRow / 2) - CARD_HEIGHT / 2, 
+                (midCol / 2)- CARD_WIDTH / 2, 1);
+    }
+}
+
+/* Adds a card to a players hand. Checks if theres enough memory; if not,
+ * doubles memory space for that player. Adds new card to hand and returns.
+ */
+void add_to_hand(Player* player, Card* card) {
+ 
+    if (player->numCards >= player->handSize) { // Are we at the mem limit?
+        Card* hand = player->hand; // Grab ptr out, not needed but clarity
+        hand = (Card*) realloc(hand, sizeof(Card) * ((player->handSize) * 2));
+        player->handSize *= 2; // Double hand size every time (amort to O(1))
+        player->hand = hand;
+    }
+
+    player->hand[player->numCards++] = (*card);
+}
+
+/* Removes a card from a players hand and updates the array */
+void remove_from_hand(Player* player, int cardNum) {
+
+    if (cardNum > player->numCards - 1 || cardNum < 0) {
+        fprintf(stderr, "Invalid card num to remove!\n");
+        return;
+    }
+    
+    if (cardNum == player->numCards - 1) {
+        player->numCards--;
+    } else { // Will be overwritten next time you add
+        for (int i = cardNum; i < player->numCards - 1; i++) {
+            player->hand[i] = player->hand[i + 1];
+        }
+        player->numCards--;
+    }
+
+
+}
+
+/* Handles the chat log in game. If max messages reached, pop the earliest off*/
 void handle_chat(Game* game, int row, int col) {
     
     if (++(game->numMessages) > CHAT_LOG_COUNT) { // Check we haven't filled
@@ -173,7 +256,6 @@ void handle_chat(Game* game, int row, int col) {
 
     mvprintw(row - 2, (col - strlen(CHAT_PROMPT)) - MESSAGE_SIZE, CHAT_PROMPT); // Display prompt
     capture_message(game); // -2 stops overflow on screen size, without it touches card
-    print_chat_buffer(game, row, col);
     move(row - 2, (col - strlen(CHAT_PROMPT)) - MESSAGE_SIZE); // Move cursor bacl
     clrtoeol(); // Wipe the prompt
 
@@ -188,9 +270,9 @@ void capture_message(Game* game) {
     noecho();
     time_t rawTime; // Get the sys time
     time(&rawTime);
-    struct tm* tm_struct = localtime(&rawTime);
-    newMessage->hour = tm_struct->tm_hour;
-    newMessage->min = tm_struct->tm_min;
+    struct tm* tm_struct = localtime(&rawTime); // localtime is static
+    newMessage->hour = tm_struct->tm_hour; // so grab the current state of it
+    newMessage->min = tm_struct->tm_min; // for later use
     newMessage->sec = tm_struct->tm_sec; 
 }
 
@@ -231,6 +313,13 @@ int handle_input(int key, Game* game) {
         case 't':
         case 'T':
             return CHAT;
+        case 'p':
+        case 'P':
+            return 'P';
+        case 'x':
+            return 'x';
+        case '\n':
+            return 'n';
         default:
             return SELECT;
 
@@ -254,6 +343,12 @@ void print_hand(Player* player, int row, int col) {
         }
         col += CARD_WIDTH + 4; // Jump over card we drew + 4 char gap TODO fix magic make reactive
     }
+
+    for (int i = 0; i < CARD_HEIGHT; i++) {
+        move(row++, col);
+        clrtoeol();
+    };
+
 }
 
 
@@ -280,9 +375,9 @@ void print_empty_space(Card* card, int* row, int col) {
         attron(COLOR_PAIR(BORDER)); // Turn on the color of the border
         mvprintw((*row)++, col, "|");
         attroff(COLOR_PAIR(BORDER));
-        attron(COLOR_PAIR(card->colorOne));
+        attron(COLOR_PAIR(card->color));
         printw(EMPTY);
-        attroff(COLOR_PAIR(card->colorOne));
+        attroff(COLOR_PAIR(card->color));
         attron(COLOR_PAIR(BORDER));
         printw("|");
         attroff(COLOR_PAIR(BORDER));
@@ -298,7 +393,7 @@ void print_card_text(Card* card, int* row, int col) {
     attron(COLOR_PAIR(BORDER));
     mvprintw((*row)++, col, "|");
     attroff(COLOR_PAIR(BORDER));
-    attron(COLOR_PAIR(card->colorOne));
+    attron(COLOR_PAIR(card->color));
 
     switch (card->cardType) {
         case 'R':
@@ -315,10 +410,10 @@ void print_card_text(Card* card, int* row, int col) {
             break;  
         
         default:
-            fprintf(stderr, "Invalid card type detected\n");
+            fprintf(stderr, "Invalid card type detected at text\n");
     }
 
-    attroff(COLOR_PAIR(card->colorOne));
+    attroff(COLOR_PAIR(card->color));
     attron(COLOR_PAIR(BORDER));
     printw("|");
     attroff(COLOR_PAIR(BORDER));
@@ -410,7 +505,7 @@ void print_card_detail(Card* card, int* row, int col, int top) {
     attron(COLOR_PAIR(BORDER));
     mvprintw((*row)++, col, "|");
     attroff(COLOR_PAIR(BORDER));
-    attron(COLOR_PAIR(card->colorOne));
+    attron(COLOR_PAIR(card->color));
     switch (card->cardType) {
         case 'N':
             if (top) {
@@ -444,10 +539,11 @@ void print_card_detail(Card* card, int* row, int col, int top) {
             break;
         default:
             // error, shouldn't be reached
-            printf("AHH");
+            fprintf(stderr, "Invalid card detected in detail ");
+            fprintf(stderr, "Card info: %c %d\n\n\n\n", card->cardType, card->cardValue);
     }
 
-    attroff(COLOR_PAIR(card->colorOne));
+    attroff(COLOR_PAIR(card->color));
     attron(COLOR_PAIR(BORDER));
     printw("|");
     attroff(COLOR_PAIR(BORDER));

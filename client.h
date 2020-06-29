@@ -4,7 +4,7 @@
 /* Contains information describing a card */
 typedef struct Card {
     char cardType; //Can be N for number, F for Draw4, T for Draw2, R for 
-    int colorOne; // Reverse, W for Wild and S for Skip {N,F,T,R,W,B}
+    int color; // Reverse, W for Wild and S for Skip {N,F,T,R,W,B}
     int cardValue; // Number on the card, used for N
 }Card;
 
@@ -16,6 +16,7 @@ typedef struct Card {
 typedef struct Player {
     Card* hand; // The current hand of cards
     int numCards; // How many do we have?
+    int handSize; // Mem counter
     int currentCard; // What card is currently selected in client?
     int currentPage; // Used to determine what page of cards to show
 }Player;
