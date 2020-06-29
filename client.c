@@ -26,6 +26,7 @@
 #define CHAT_LOG "%d:%d:%d %s"
 #define MESSAGE_SIZE 80
 
+
 void add_to_hand(Player* player, Card* card);
 void remove_from_hand(Player* player, int cardNum);
 void print_game(Game* game, int row, int col);
@@ -39,6 +40,15 @@ enum CardColors {
     RED = 3,
     YELLOW = 4,
     GREEN = 5
+};
+
+enum CardTypes {
+    SKIP = 'S',
+    WILD = 'W',
+    DRAW = 'F',
+    REVERSE = 'R',
+    NUMBER = 'N',
+    TAKE = 'T'
 };
 
 enum InputFlags {
@@ -159,8 +169,8 @@ void output_display(Game* game) {
     while(1) { // TEST INTERACTION
         key = getch(); // What did they press?
         int status = handle_input(key, game);
-        if (status == QUIT) {
-            return;
+        if (status == QUIT) { // Swap this to be switch
+            return; 
         } else if (status == CHAT) {
             handle_chat(game, row, col);
         } else if (status == 'P') {
@@ -176,11 +186,11 @@ void output_display(Game* game) {
     }
 }
 
-
-/*Card* generate_card(void) {
- 
-
-}*/
+// Generate whole uno deck then rand indices to it
+Card* generate_card(void) {
+    // TODO: Make cards be pageable; min size = 1 card width + chat
+    
+}
 
 // Performs a deep copy of a card to the game
 void play_card(Game* game, Player* player, int clientNum) {
@@ -232,13 +242,13 @@ void remove_from_hand(Player* player, int cardNum) {
     
     if (cardNum == player->numCards - 1) {
         player->numCards--;
+        player->currentCard--;
     } else { // Will be overwritten next time you add
         for (int i = cardNum; i < player->numCards - 1; i++) {
             player->hand[i] = player->hand[i + 1];
         }
         player->numCards--;
     }
-
 
 }
 
@@ -396,16 +406,16 @@ void print_card_text(Card* card, int* row, int col) {
     attron(COLOR_PAIR(card->color));
 
     switch (card->cardType) {
-        case 'R':
+        case REVERSE:
             printw(REVERSE_TEXT);
             break;
-        case 'S':
+        case SKIP:
             printw(SKIP_TEXT);
             break;
-        case 'T':
+        case TAKE:
             printw(TAKE_TWO_TEXT);
             break;
-        case 'N':
+        case NUMBER:
             printw(NUM_CENTER, card->cardValue);
             break;  
         
@@ -434,14 +444,14 @@ void print_wild_card(Card* card, int* row, int col) {
     attron(COLOR_PAIR(RED));
 
     switch (card->cardType) {
-        case 'F':
+        case DRAW:
             printw("   DRA");
             attroff(COLOR_PAIR(RED));
             attron(COLOR_PAIR(BLUE));
             printw("W4    ");
             attroff(COLOR_PAIR(BLUE));
             break;
-        case 'W':
+        case WILD:
             printw("    WI");
             attroff(COLOR_PAIR(RED));
             attron(COLOR_PAIR(BLUE));
@@ -507,14 +517,14 @@ void print_card_detail(Card* card, int* row, int col, int top) {
     attroff(COLOR_PAIR(BORDER));
     attron(COLOR_PAIR(card->color));
     switch (card->cardType) {
-        case 'N':
+        case NUMBER:
             if (top) {
                 printw(NUMBER_TOP, card->cardValue);
             } else {
                 printw(NUMBER_BOTTOM, card->cardValue);
             }
             break;
-        case 'T':
+        case TAKE:
             if (top) {
                 printw(TAKE_TWO_TOP); 
             } else {
@@ -522,7 +532,7 @@ void print_card_detail(Card* card, int* row, int col, int top) {
             }
             break;
         
-        case 'S':
+        case SKIP:
             if (top) {
                 printw(SKIP_TOP);
             } else {
@@ -530,7 +540,7 @@ void print_card_detail(Card* card, int* row, int col, int top) {
             }
             break;
             
-        case 'R':
+        case REVERSE:
             if (top) {
                 printw(REVERSE_TOP);
             } else {
@@ -560,7 +570,7 @@ void print_card(Card* card, int row, int col, int bold) {
 
     print_card_edge(&row, col);
     
-    if (card->cardType == 'F' || card->cardType == 'W') {
+    if (card->cardType == DRAW || card->cardType == WILD) {
         print_wild_card(card, &row, col);
     } else {
         print_card_detail(card, &row, col, 1);
