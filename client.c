@@ -28,7 +28,8 @@
 
 #define NUM_COLORS 4
 #define DECK_SIZE 108
-#define SUIT_SIZE 25
+#define SUIT_SIZE 19
+#define NUM_SPECIAL 6
 
 void add_to_hand(Player* player, Card* card);
 void remove_from_hand(Player* player, int cardNum);
@@ -65,9 +66,9 @@ enum InputFlags {
 int main() {
     setup_ncurse();
 
-    Game* newGame = (Game*) malloc(sizeof(Game));
+    Game newGame;// = (Game*) malloc(sizeof(Game));
     //setup_game();
-    output_display(newGame);
+    output_display(&newGame);
     refresh();
     endwin();
 
@@ -209,7 +210,6 @@ Card make_card(int color, char value, char type) {
 void generate_deck(Card* deck, int size) {
     // TODO: Make cards be pageable; min size = 1 card width + chat
     
-    //Card deck[108];  // 108 cards in an uno deck
     char colors[NUM_COLORS] = {RED, BLUE, YELLOW, GREEN};
 
     for (int i = 0; i < NUM_COLORS; i++) { // four suites
@@ -217,18 +217,29 @@ void generate_deck(Card* deck, int size) {
             if (j == 0) { // Only one 0 in the colors
                 // i * 25 skips to next start pos in array
                 deck[(i * SUIT_SIZE)] = make_card(colors[i], j, NUMBER);
-            } else if (j < SUIT_SIZE - 6) { // 6 non number cards in a suit
+            } else { // 6 non number cards in a suit
                 if (j > 9) { // 1 - 9 repeat, so on indicies 10-19 double up
-                    deck[(i * SUIT_SIZE) + j] = make_card(colors[i], j - 9, NUMBER);
-                } else { // If anyone has a better formula here that'd be great
-                    deck[(i * SUIT_SIZE) + j] = make_card(colors[i], j , NUMBER);
-                }
-            } else if (j >= SUIT_SIZE - 6 && j < SUIT_SIZE - 4) { // 19 number cards done, now the rest
-                deck[(i * SUIT_SIZE) + j] = make_card(colors[i], 0, SKIP);
-            } else if (j >= SUIT_SIZE - 4 && j < SUIT_SIZE - 2) {
-                deck[(i * SUIT_SIZE) + j] = make_card(colors[i], 0, REVERSE);
-            } else { // 2 take, reverse, skip
-                deck[(i * SUIT_SIZE) + j] = make_card(colors[i], 0, TAKE);
+                    deck[(i * SUIT_SIZE) + j] = make_card(colors[i], 
+                            j - 9, NUMBER);
+                } else { 
+                    deck[(i * SUIT_SIZE) + j] = make_card(colors[i], 
+                            j, NUMBER);
+                } // 19 number cards per suit, rest are 2 of rest
+            }
+        }
+    }
+
+    for (int i = 0; i < NUM_COLORS; i++) {
+        for (int j = 0; j < 6; j++) {
+            if (j < 2) {
+                deck[(SUIT_SIZE * NUM_COLORS) + (i * NUM_SPECIAL) + j] = 
+                    make_card(colors[i], 0, SKIP);
+            } else if (j < 4) {
+                deck[(SUIT_SIZE * NUM_COLORS) + (i * NUM_SPECIAL) + j] = 
+                    make_card(colors[i], 0, REVERSE);
+            } else {
+                deck[(SUIT_SIZE * NUM_COLORS) + (i * NUM_SPECIAL) + j] = 
+                    make_card(colors[i], 0, TAKE);
             }
         }
     }
@@ -240,8 +251,6 @@ void generate_deck(Card* deck, int size) {
             deck[i] = make_card(RED, 0, DRAW); // 4 draws, 0 index
         }
     }
-
-    //return &deck;
 }
 
 // Performs a deep copy of a card to the game
