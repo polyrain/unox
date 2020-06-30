@@ -26,11 +26,15 @@
 #define CHAT_LOG "%d:%d:%d %s"
 #define MESSAGE_SIZE 80
 
+#define NUM_COLORS 4
+#define DECK_SIZE 108
+#define SUIT_SIZE 25
 
 void add_to_hand(Player* player, Card* card);
 void remove_from_hand(Player* player, int cardNum);
 void print_game(Game* game, int row, int col);
 void play_card(Game* game, Player* player, int clientNum);
+void generate_deck(Card*, int);
 // TODO: Make magic numbers be reactive to terminal size 
 /* Enum to describe the four colors, and border color, used by card
  * rendering */
@@ -163,7 +167,13 @@ void output_display(Game* game) {
     testCard.color = RED;
     testCard.cardValue = 4;
     testCard.cardType = 'N';
-
+    fprintf(stderr, "Test card is: %c %d %d\n", testCard.cardType, testCard.cardValue, testCard.color);
+    
+    Card cards[108];
+    generate_deck(cards, 108);
+    for (int i = 0; i < 108; i++) {
+        fprintf(stderr, "Card %d info: %c %d %d\n", i, cards[i].cardType, cards[i].cardValue, cards[i].color);
+    }
     print_game(game, row, col);
     Player* player = game->players[game->clientNum];
     while(1) { // TEST INTERACTION
@@ -174,7 +184,7 @@ void output_display(Game* game) {
         } else if (status == CHAT) {
             handle_chat(game, row, col);
         } else if (status == 'P') {
-            add_to_hand(player, &testCard);
+            add_to_hand(player, &(cards[rand() % 108]));
         } else if (status == 'x') {
             remove_from_hand(player, player->numCards - 1);
         } else if (status == 'n') {
@@ -186,10 +196,52 @@ void output_display(Game* game) {
     }
 }
 
+Card make_card(int color, char value, char type) {
+    Card newCard;
+    newCard.color = color;
+    newCard.cardValue = value;
+    newCard.cardType = type;
+
+    return newCard;
+}
+
 // Generate whole uno deck then rand indices to it
-Card* generate_card(void) {
+void generate_deck(Card* deck, int size) {
     // TODO: Make cards be pageable; min size = 1 card width + chat
     
+    //Card deck[108];  // 108 cards in an uno deck
+    char colors[NUM_COLORS] = {RED, BLUE, YELLOW, GREEN};
+
+    for (int i = 0; i < NUM_COLORS; i++) { // four suites
+        for (int j = 0; j < SUIT_SIZE; j++) { // 13 sub cards within it
+            if (j == 0) { // Only one 0 in the colors
+                // i * 25 skips to next start pos in array
+                deck[(i * SUIT_SIZE)] = make_card(colors[i], j, NUMBER);
+            } else if (j < SUIT_SIZE - 6) { // 6 non number cards in a suit
+                if (j > 9) { // 1 - 9 repeat, so on indicies 10-19 double up
+                    deck[(i * SUIT_SIZE) + j] = make_card(colors[i], j - 9, NUMBER);
+                } else { // If anyone has a better formula here that'd be great
+                    deck[(i * SUIT_SIZE) + j] = make_card(colors[i], j , NUMBER);
+                }
+            } else if (j >= SUIT_SIZE - 6 && j < SUIT_SIZE - 4) { // 19 number cards done, now the rest
+                deck[(i * SUIT_SIZE) + j] = make_card(colors[i], 0, SKIP);
+            } else if (j >= SUIT_SIZE - 4 && j < SUIT_SIZE - 2) {
+                deck[(i * SUIT_SIZE) + j] = make_card(colors[i], 0, REVERSE);
+            } else { // 2 take, reverse, skip
+                deck[(i * SUIT_SIZE) + j] = make_card(colors[i], 0, TAKE);
+            }
+        }
+    }
+
+    for (int i = DECK_SIZE - 1; i > DECK_SIZE - 8 - 1; i--) {
+        if (i > DECK_SIZE - 5) {
+            deck[i] = make_card(RED, 0, WILD);
+        } else {
+            deck[i] = make_card(RED, 0, DRAW); // 4 draws, 0 index
+        }
+    }
+
+    //return &deck;
 }
 
 // Performs a deep copy of a card to the game
